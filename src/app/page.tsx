@@ -55,6 +55,8 @@ const checkFileCompleteness = (data: any) => {
     missingFields.push('numeroControl');
   }
 
+
+
   return { isComplete, missingFields };
 };
 
@@ -122,6 +124,19 @@ const Home = () => {
     });
   };
 
+  const handleClearFiles = () => {
+    const confirmClear = window.confirm("¿Estás seguro de que deseas limpiar todos los archivos subidos?");
+    if (confirmClear) {
+      setFiles([]);
+      setData([]);
+      setAvailableTipoDtes([]);
+      setAvailableMonths([]);
+      setSelectedTipoDte('');
+      setSelectedMonths([]);
+      setSearchTerm('');
+    }
+  };
+
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
   const handleTipoDteChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -138,6 +153,7 @@ const Home = () => {
     setSelectedMonths((prev) => checked ? [...prev, value] : prev.filter((month) => month !== value));
   };
 
+  
   const filteredData = data.filter(
     (item) =>
       item.identificacion.tipoDte === selectedTipoDte &&
@@ -163,15 +179,20 @@ const Home = () => {
     }],
   };
 
-  const paginate = (page: number, setCurrentPage: React.Dispatch<React.SetStateAction<number>>) => setCurrentPage(page);
-
   const handleSave = async () => {
-    const zip = new JSZip();
-    filteredData.forEach((item, index) => {
-      zip.file(`file_${index + 1}.json`, JSON.stringify(item, null, 2));
-    });
-    const content = await zip.generateAsync({ type: 'blob' });
-    saveAs(content, `${selectedTipoDte}_${selectedMonths.join('-')}.zip`);
+    const confirmDownload = window.confirm("¿Estás seguro de que deseas descargar los archivos?");
+    if (confirmDownload) {
+      const zip = new JSZip();
+
+      filteredData.forEach((item, index) => {
+
+          zip.file(`file_${index + 1}.json`, JSON.stringify(item, null, 2));
+
+      });
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, `${selectedTipoDte}_${selectedMonths.join('-')}.zip`);
+    }
   };
 
   // Filtramos archivos completos e incompletos
@@ -185,6 +206,8 @@ const Home = () => {
     return !isComplete;
   });
 
+  
+
   return (
     <div className="p-5 text-center font-sans bg-white text-black space-y-5">
       {/* Dropzone para archivos JSON */}
@@ -196,17 +219,32 @@ const Home = () => {
         <p>Arrastra y suelta tus archivos JSON aquí, o haz clic para seleccionar archivos</p>
       </div>
 
+      {files.length > 0 && (
+      <h3>Archivos: {files.length}</h3>
+      )}
+      
       {/* Botón para mostrar/ocultar archivos subidos */}
+      {files.length > 0 && (
+        
+      <button
+        onClick={handleClearFiles}
+        className="mb-5 px-5 py-2 bg-red-500 text-white rounded cursor-pointer"
+      >
+        Limpiar Archivos Subidos
+      </button>)}
+
+      {files.length > 0 && (
       <button
         onClick={() => setShowFiles(prev => !prev)}
         className="mb-5 px-5 py-2 bg-blue-500 text-white rounded cursor-pointer"
       >
         {showFiles ? 'Ocultar Archivos Subidos' : 'Mostrar Archivos Subidos'}
       </button>
+      )}
 
       {/* Sección para mostrar archivos subidos y su paginación */}
       {files.length > 0 && (
-        <div className="border border-gray-300 p-5 mx-auto max-w-md">
+        <div className="p-5 mx-auto max-w-md">
           {showFiles && (
             <>
               <div className="border border-gray-300 p-5 mx-auto max-w-md">
@@ -225,6 +263,7 @@ const Home = () => {
 
       <div className="flex flex-col lg:flex-row gap-5 w-full">
         {/* Filtros de Tipo DTE y Mes */}
+        {files.length > 0 && (
         <div className="border border-gray-300 p-5 lg:w-1/3 flex-1">
           <h3>Filtrar por Tipo DTE:</h3>
           <select onChange={handleTipoDteChange} value={selectedTipoDte} className="p-2 rounded border border-gray-300 w-full">
@@ -234,7 +273,13 @@ const Home = () => {
             ))}
           </select>
 
-          {selectedTipoDte && (
+            {/* Mensaje si no hay tipo de DTE seleccionado */}
+          {selectedTipoDte && availableMonths.length === 0 && (
+            <p>No existen archivos para el Tipo DTE seleccionado.</p>
+            
+          )}
+  
+          {selectedTipoDte && availableMonths.length > 0 && (
             <>
               <h3>Filtrar por Mes:</h3>
               {availableMonths.map((month) => (
@@ -250,8 +295,52 @@ const Home = () => {
               ))}
             </>
           )}
+          <div className="flex flex-col lg:flex-row gap-5 w-full">
+          {/* Archivos Filtrados Completos */}
+      {selectedTipoDte && completeFiles.length > 0 && (
+        <div className="border border-gray-300 p-5 mx-auto max-w-md">
+          <h3>Archivos Filtrados Completos:</h3>
+          <ul className="list-none pl-0">
+            {completeFiles.map((item, index) => (
+              <li key={index} className="mb-1">
+                {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre}`}
+              </li>
+            ))}
+          </ul>
+          
+        </div>
+      )}
 
-          {/* Buscador y Datos Consolidados */}
+      {/* Archivos Filtrados Incompletos */}
+      {selectedTipoDte && incompleteFiles.length > 0 && (
+        <div className="border border-red-500 p-5 mx-auto max-w-md">
+          <h3>Archivos Filtrados Incompletos:</h3>
+          <ul className="list-none pl-0">
+            {incompleteFiles.map((item, index) => {
+              const { missingFields } = checkFileCompleteness(item.dteJson);
+              return (
+                <li key={index} className="mb-1">
+                  {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre} - Faltan: ${missingFields.join(', ')}`}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+          </div>
+                
+
+
+          
+        </div>
+        )}
+        {/* Gráfica Lineal */}
+        {selectedTipoDte && filteredData.length > 0 && (
+        <div className="border border-gray-300 p-5 lg:w-2/3 flex-1">
+          <h3>Gráfica Lineal:</h3>
+          <Line data={chartData} options={{ responsive: true, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (context) => `Total a Pagar: ${context.raw}` } } } }} />
+            {/* Buscador y Datos Consolidados */}
+          {selectedTipoDte && filteredData.length > 0 && (
           <div className="border border-gray-300 p-5 mt-5">
             <h3>Buscador de Datos Consolidados:</h3>
             <input
@@ -262,61 +351,32 @@ const Home = () => {
               className="p-2 rounded border border-gray-300 w-full"
             />
 
+            <h3>Datos Consolidados ({filteredDataForSearch.length} archivos filtrados):</h3>
             <h3>Datos Consolidados:</h3>
             <Table data={filteredDataForSearch.slice((currentPageData - 1) * dataPerPage, currentPageData * dataPerPage)} />
 
             <Pagination itemsPerPage={dataPerPage} totalItems={filteredDataForSearch.length} paginate={(page) => paginate(page, setCurrentPageData)} currentPage={currentPageData} />
           </div>
-        </div>
-
-        {/* Gráfica Lineal */}
-        <div className="border border-gray-300 p-5 lg:w-2/3 flex-1">
-          <h3>Gráfica Lineal:</h3>
-          <Line data={chartData} options={{ responsive: true, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (context) => `Total a Pagar: ${context.raw}` } } } }} />
-        </div>
-      </div>
-
-      {/* Archivos Filtrados Completos */}
-      <div className="border border-gray-300 p-5 mx-auto max-w-md">
-        <h3>Archivos Filtrados Completos:</h3>
-        <ul className="list-none pl-0">
-          {completeFiles.length > 0 ? (
-            completeFiles.map((item, index) => (
-              <li key={index} className="mb-1">
-                {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre}`}
-              </li>
-            ))
-          ) : (
-            <li>No hay archivos completos</li>
           )}
-        </ul>
+        </div>
+        )}
       </div>
+          
 
-      {/* Archivos Filtrados Incompletos */}
-      <div className="border border-red-500 p-5 mx-auto max-w-md">
-        <h3>Archivos Filtrados Incompletos:</h3>
-        <ul className="list-none pl-0">
-          {incompleteFiles.length > 0 ? (
-            incompleteFiles.map((item, index) => {
-              const { missingFields } = checkFileCompleteness(item.dteJson);
-              return (
-                <li key={index} className="mb-1">
-                  {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre} - Faltan: ${missingFields.join(', ')}`}
-                </li>
-              );
-            })
-          ) : (
-            <li>No hay archivos incompletos</li>
-          )}
-        </ul>
-      </div>
-
-      <button
-        onClick={handleSave}
-        className="px-5 py-2 bg-blue-500 text-white rounded cursor-pointer mt-5"
-      >
-        Descargar Datos
-      </button>
+{selectedTipoDte && filteredData.length > 0 && (
+      <button 
+      onClick={() => {
+    if (files.length === 0 || !selectedTipoDte || selectedMonths.length === 0) {
+      alert('Por favor, sube archivos y selecciona un Tipo DTE y al menos un mes antes de descargar.');
+      return;
+    }
+    handleSave();
+  }}
+  className="px-5 py-2 bg-blue-500 text-white rounded cursor-pointer mt-5 ${files.length === 0 || !selectedTipoDte || filteredData.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
+>
+  Descargar Datos
+</button>
+)}
 
     </div>
 
