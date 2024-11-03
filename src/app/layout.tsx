@@ -1,8 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from "react";
 import localFont from "next/font/local";
 import "./globals.css";
+import logoito from "./OIP.jpeg"
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -46,8 +48,15 @@ export default function RootLayout({
   return (
     <html lang="en">
   <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-    <header className={`bg-blue-600 p-4 flex items-center fixed top-0 left-0 right-0 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDKQHEn1w_YsXmkIt9sg2zWh_JX4serYjvNw&s" alt="Logo" className="h-8" style={{ width: '1auto' }} /> {/* Ancho fijo */}
+  <header
+  style={{ backgroundColor: '#ff6d3cff' }}
+  className={`p-4 flex items-center fixed top-0 left-0 right-0 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+>
+      <Image src={logoito}
+      alt="Logo"
+      width={32}
+      height={32}
+      className="h-8 w-auto"/>
       <div className="flex-grow flex justify-between ml-4">
         {//Object.keys(views).map((view, index) => (
          // <button

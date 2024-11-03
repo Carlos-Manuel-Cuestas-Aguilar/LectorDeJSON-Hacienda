@@ -73,6 +73,10 @@ const Home = () => {
   const [currentPageFiles, setCurrentPageFiles] = useState(1);
   const [currentPageData, setCurrentPageData] = useState(1);
 
+  const [currentPageCompleteFiles, setCurrentPageCompleteFiles] = useState(1);
+  const [currentPageIncompleteFiles, setCurrentPageIncompleteFiles] = useState(1);
+
+
   const [showFiles, setShowFiles] = useState(true);
   const filesPerPage = 10;
   const dataPerPage = 10;
@@ -180,20 +184,30 @@ const Home = () => {
   };
 
   const handleSave = async () => {
-    const confirmDownload = window.confirm("¿Estás seguro de que deseas descargar los archivos?");
+    const confirmDownload = window.confirm("¿Estás seguro de que deseas descargar solo los archivos completos?");
     if (confirmDownload) {
       const zip = new JSZip();
-
-      filteredData.forEach((item, index) => {
-
-          zip.file(`file_${index + 1}.json`, JSON.stringify(item, null, 2));
-
+  
+      // Filtramos solo los archivos completos
+      const completeData = filteredData.filter((item) => {
+        const { isComplete } = checkFileCompleteness(item.dteJson);
+        return isComplete;
       });
-
+  
+      if (completeData.length === 0) {
+        window.alert("No hay archivos completos para descargar.");
+        return;
+      }
+  
+      completeData.forEach((item, index) => {
+        zip.file(`file_${index + 1}.json`, JSON.stringify(item, null, 2));
+      });
+  
       const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, `${selectedTipoDte}_${selectedMonths.join('-')}.zip`);
+      saveAs(content, `${selectedTipoDte}_${selectedMonths.join('-')}_completos.zip`);
     }
   };
+  
 
   // Filtramos archivos completos e incompletos
   const completeFiles = filteredData.filter((item) => {
@@ -206,6 +220,7 @@ const Home = () => {
     return !isComplete;
   });
 
+  
   
 
   return (
@@ -234,7 +249,7 @@ const Home = () => {
       </button>)}
 
       {files.length > 0 && (
-      <button
+      <button style={{ backgroundColor: '#ff6d3cff' }}
         onClick={() => setShowFiles(prev => !prev)}
         className="mb-5 px-5 py-2 bg-blue-500 text-white rounded cursor-pointer"
       >
@@ -254,7 +269,12 @@ const Home = () => {
                     <li key={file.path} className="mb-1">{file.name}</li>
                   ))}
                 </ul>
-                <Pagination itemsPerPage={filesPerPage} totalItems={files.length} paginate={(page) => paginate(page, setCurrentPageFiles)} currentPage={currentPageFiles} />
+                <Pagination 
+        itemsPerPage={filesPerPage} 
+        totalItems={files.length} 
+        paginate={(page) => paginate(page, setCurrentPageFiles)} 
+        currentPage={currentPageFiles} 
+      />
               </div>
             </>
           )}
@@ -297,36 +317,49 @@ const Home = () => {
           )}
           <div className="flex flex-col lg:flex-row gap-5 w-full">
           {/* Archivos Filtrados Completos */}
-      {selectedTipoDte && completeFiles.length > 0 && (
-        <div className="border border-gray-300 p-5 mx-auto max-w-md">
-          <h3>Archivos Filtrados Completos:</h3>
-          <ul className="list-none pl-0">
-            {completeFiles.map((item, index) => (
-              <li key={index} className="mb-1">
-                {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre}`}
-              </li>
-            ))}
-          </ul>
-          
-        </div>
-      )}
+          {selectedTipoDte && completeFiles.length > 0 && (
+  <div className="border border-gray-300 p-5 mx-auto max-w-md">
+    <h3>Archivos Filtrados Completos:</h3>
+    <ul className="list-none pl-0">
+      {completeFiles.slice((currentPageCompleteFiles - 1) * filesPerPage, currentPageCompleteFiles * filesPerPage).map((item, index) => (
+        <li key={index} className="mb-1">
+          {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre}`}
+        </li>
+      ))}
+    </ul>
+    <Pagination 
+      itemsPerPage={filesPerPage} 
+      totalItems={completeFiles.length} 
+      paginate={(page) => setCurrentPageCompleteFiles(page)} 
+      currentPage={currentPageCompleteFiles} 
+    />
+  </div>
+)}
 
       {/* Archivos Filtrados Incompletos */}
       {selectedTipoDte && incompleteFiles.length > 0 && (
-        <div className="border border-red-500 p-5 mx-auto max-w-md">
-          <h3>Archivos Filtrados Incompletos:</h3>
-          <ul className="list-none pl-0">
-            {incompleteFiles.map((item, index) => {
-              const { missingFields } = checkFileCompleteness(item.dteJson);
-              return (
-                <li key={index} className="mb-1">
-                  {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre} - Faltan: ${missingFields.join(', ')}`}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+  <div className="border border-red-500 p-5 mx-auto max-w-md">
+    <h3>Archivos Filtrados Incompletos:</h3>
+    <p>Archivos Incompletos: {incompleteFiles.length}</p>
+    <ul className="list-none pl-0">
+      {incompleteFiles.slice((currentPageIncompleteFiles - 1) * filesPerPage, currentPageIncompleteFiles * filesPerPage).map((item, index) => {
+        const { missingFields } = checkFileCompleteness(item.dteJson);
+        return (
+          <li key={index} className="mb-1">
+            {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre} - Faltan: ${missingFields.join(', ')}`}
+          </li>
+        );
+      })}
+    </ul>
+    <Pagination 
+      itemsPerPage={filesPerPage} 
+      totalItems={incompleteFiles.length} 
+      paginate={(page) => setCurrentPageIncompleteFiles(page)} 
+      currentPage={currentPageIncompleteFiles} 
+    />
+  </div>
+)}
+
           </div>
                 
 
@@ -355,7 +388,12 @@ const Home = () => {
             <h3>Datos Consolidados:</h3>
             <Table data={filteredDataForSearch.slice((currentPageData - 1) * dataPerPage, currentPageData * dataPerPage)} />
 
-            <Pagination itemsPerPage={dataPerPage} totalItems={filteredDataForSearch.length} paginate={(page) => paginate(page, setCurrentPageData)} currentPage={currentPageData} />
+            <Pagination 
+        itemsPerPage={dataPerPage} 
+        totalItems={filteredDataForSearch.length} 
+        paginate={(page) => paginate(page, setCurrentPageData)} 
+        currentPage={currentPageData} 
+      />
           </div>
           )}
         </div>
@@ -408,6 +446,9 @@ const Table = ({ data }: { data: any[] }) => (
   </table>
 );
 
+const paginate = (pageNumber: number, setPage: React.Dispatch<React.SetStateAction<number>>) => {
+  setPage(pageNumber);
+};
 
 const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
   const pageNumbers = [];
@@ -434,24 +475,27 @@ const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
   return (
     <div className="flex items-center justify-center mt-5">
       <button
+      style={{ backgroundColor: '#ff6d3cff' }}
         onClick={() => paginate(1)}
         disabled={currentPage === 1}
         className={`px-4 py-2 mx-1 text-white bg-blue-600 rounded hover:bg-blue-700 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
           }`}
       >
-        &laquo; Primero
+        &laquo; 
       </button>
       <button
+      style={{ backgroundColor: '#ff6d3cff' }}
         onClick={() => paginate(currentPage - 1)}
         disabled={currentPage === 1}
         className={`px-4 py-2 mx-1 text-white bg-blue-600 rounded hover:bg-blue-700 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
           }`}
       >
-        &lt; Anterior
+        &lt; 
       </button>
 
       {pageNumbers.map((number) => (
         <button
+        style={{ backgroundColor: '#ff6d3cff' }}
           key={number}
           onClick={() => paginate(number)}
           className={`px-4 py-2 mx-1 text-white rounded border ${currentPage === number
@@ -464,20 +508,22 @@ const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
       ))}
 
       <button
+      style={{ backgroundColor: '#ff6d3cff' }}
         onClick={() => paginate(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className={`px-4 py-2 mx-1 text-white bg-blue-600 rounded hover:bg-blue-700 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+        className={`px-2 py-2 mx-1 text-white bg-blue-600 rounded hover:bg-blue-700 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
           }`}
       >
-        &gt; Siguiente
+        &gt; 
       </button>
       <button
+      style={{ backgroundColor: '#ff6d3cff' }}
         onClick={() => paginate(totalPages)}
         disabled={currentPage === totalPages}
         className={`px-4 py-2 mx-1 text-white bg-blue-600 rounded hover:bg-blue-700 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
           }`}
       >
-        &raquo; Último
+        &raquo; 
       </button>
     </div>
   );
