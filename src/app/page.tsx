@@ -76,26 +76,30 @@ const Home = () => {
   const [currentPageCompleteFiles, setCurrentPageCompleteFiles] = useState(1);
   const [currentPageIncompleteFiles, setCurrentPageIncompleteFiles] = useState(1);
 
+  const [archivosCompletos, setArchivosCompletos] = useState([]);
+    const [archivosIncompletos, setArchivosIncompletos] = useState([]);
+    const [nombresArchivos, setNombresArchivos] = useState({ completos: [], incompletos: [] });
+
 
   const [showFiles, setShowFiles] = useState(true);
   const filesPerPage = 10;
   const dataPerPage = 10;
 
+
+  
   const onDrop = (acceptedFiles: File[]) => {
-    setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
+    // Guardar los archivos subidos, incluyendo su nombre
+    setFiles((prevFiles) => [
+      ...prevFiles,
+      ...acceptedFiles.map((file) => ({ file, name: file.name }))
+    ]);
+  
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         try {
           const json = JSON.parse(reader.result as string);
-          /*
-          setData((prevData) => {
-            const updatedData = [...prevData, json];
-            const tipoDtes = new Set(updatedData.map((item) => item.dteJson.identificacion.tipoDte));
-            setAvailableTipoDtes(Array.from(tipoDtes));
-            return updatedData;
-          });
-          */
+  
           // Extrae los datos necesarios de la estructura JSON, sin importar su jerarquía
           const tipoDte = findProperty(json, 'tipoDte');
           const fecEmi = findProperty(json, 'fecEmi');
@@ -103,7 +107,7 @@ const Home = () => {
           const emisorNombre = findProperty(json, 'emisor')?.nombre;
           const receptorNombre = findProperty(json, 'receptor')?.nombre;
           const totalPagar = findProperty(json, 'resumen')?.totalPagar;
-
+  
           const formattedData = {
             dteJson: json,
             identificacion: { tipoDte, fecEmi },
@@ -112,14 +116,14 @@ const Home = () => {
             receptor: { nombre: receptorNombre },
             resumen: { totalPagar },
           };
-
+  
           setData((prevData) => {
             const updatedData = [...prevData, formattedData];
             const tipoDtes = new Set(updatedData.map((item) => item.identificacion.tipoDte));
             setAvailableTipoDtes(Array.from(tipoDtes));
             return updatedData;
           });
-
+  
         } catch (error) {
           console.error('Error parsing JSON:', error);
         }
@@ -127,6 +131,7 @@ const Home = () => {
       reader.readAsText(file);
     });
   };
+  
 
   const handleClearFiles = () => {
     const confirmClear = window.confirm("¿Estás seguro de que deseas limpiar todos los archivos subidos?");
@@ -177,8 +182,8 @@ const Home = () => {
     datasets: [{
       label: 'Total a Pagar',
       data: filteredData.map((item) => item.resumen.totalPagar),
-      borderColor: 'rgba(0, 0, 0, 1)',
-      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      borderColor: '#ff6d3cff',
+      backgroundColor: 'white',
       fill: false,
     }],
   };
@@ -227,7 +232,7 @@ const Home = () => {
     <div className="p-5 text-center font-sans bg-white text-black space-y-5">
       {/* Dropzone para archivos JSON */}
       <div
-        {...getRootProps()}
+        {...getRootProps()} style={{ borderColor: '#ff6d3cff' }}
         className="border-dashed border-2 border-blue-500 p-5 mb-5 mx-auto max-w-md"
       >
         <input {...getInputProps()} />
@@ -278,15 +283,8 @@ const Home = () => {
               </div>
             </>
           )}
-        </div>
-      )}
-
-      <div className="flex flex-col lg:flex-row gap-5 w-full">
-        {/* Filtros de Tipo DTE y Mes */}
-        {files.length > 0 && (
-        <div className="border border-gray-300 p-5 lg:w-1/3 flex-1">
           <h3>Filtrar por Tipo DTE:</h3>
-          <select onChange={handleTipoDteChange} value={selectedTipoDte} className="p-2 rounded border border-gray-300 w-full">
+          <select onChange={handleTipoDteChange} value={selectedTipoDte} className="p-2 rounded border border-gray-300 w-full bg-white text-orange-500">
             <option value="">Selecciona un Tipo DTE</option>
             {Object.entries(tipoDteLabels).map(([code, label]) => (
               <option key={code} value={code}>{`${code} ${label}`}</option>
@@ -315,17 +313,41 @@ const Home = () => {
               ))}
             </>
           )}
-          <div className="flex flex-col lg:flex-row gap-5 w-full">
+
+        </div>
+      )}
+
+      <div className="flex flex-col lg:flex-row gap-5 w-full">
+        {/* Filtros de Tipo DTE y Mes */}
+        {files.length > 0 && (
+        <div className="border border-gray-300 p-5 lg:w-1/3 flex-1">
+          
+          <div
+  {...getRootProps()}
+  style={{ borderColor: '#ff6d3cff' }}
+  className="border-dashed border-2 border-blue-500 p-5 mb-5 mx-auto w-80 h-60 flex flex-col justify-center items-center text-center"
+>
+  <input {...getInputProps()} />
+  <p>Arrastra y suelta tus archivos JSON aquí, o haz clic para seleccionar archivos</p>
+</div>
+
+
           {/* Archivos Filtrados Completos */}
           {selectedTipoDte && completeFiles.length > 0 && (
   <div className="border border-gray-300 p-5 mx-auto max-w-md">
-    <h3>Archivos Filtrados Completos:</h3>
+    <h3 className='text-orange-500'>Archivos Filtrados Completos:{completeFiles.length}</h3>
+    
+    <hr className="border-orange-500"></hr>
     <ul className="list-none pl-0">
-      {completeFiles.slice((currentPageCompleteFiles - 1) * filesPerPage, currentPageCompleteFiles * filesPerPage).map((item, index) => (
-        <li key={index} className="mb-1">
-          {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre}`}
-        </li>
-      ))}
+    {files
+    .slice((currentPageCompleteFiles - 1) * filesPerPage, currentPageCompleteFiles * filesPerPage)
+    .map((fileObj, index) => (
+      <li key={index} className="mb-1 text-green-800">
+        {//`Archivo ${index + 1} - Nombre: ${fileObj.name} - NIT: ${fileObj.nit} - Emisor: ${fileObj.emisor?.nombre || 'Desconocido'}`
+        }
+        {`${fileObj.name} `}
+      </li>
+    ))}
     </ul>
     <Pagination 
       itemsPerPage={filesPerPage} 
@@ -335,21 +357,24 @@ const Home = () => {
     />
   </div>
 )}
-
+<br></br>
       {/* Archivos Filtrados Incompletos */}
       {selectedTipoDte && incompleteFiles.length > 0 && (
   <div className="border border-red-500 p-5 mx-auto max-w-md">
-    <h3>Archivos Filtrados Incompletos:</h3>
-    <p>Archivos Incompletos: {incompleteFiles.length}</p>
+    <h3 className='text-orange-500'>Archivos Filtrados Incompletos:{incompleteFiles.length}</h3>
+    <hr className="border-orange-500"></hr>
     <ul className="list-none pl-0">
-      {incompleteFiles.slice((currentPageIncompleteFiles - 1) * filesPerPage, currentPageIncompleteFiles * filesPerPage).map((item, index) => {
-        const { missingFields } = checkFileCompleteness(item.dteJson);
-        return (
-          <li key={index} className="mb-1">
-            {`Archivo ${index + 1} - NIT: ${item.nit} - Emisor: ${item.emisor.nombre} - Faltan: ${missingFields.join(', ')}`}
-          </li>
-        );
-      })}
+      {files
+        .slice((currentPageIncompleteFiles - 1) * filesPerPage, currentPageIncompleteFiles * filesPerPage)
+        .map((fileObj, index) => {
+          // Obtener los campos faltantes usando la función checkFileCompleteness
+          const { missingFields } = checkFileCompleteness(fileObj.dteJson);
+          return (
+            <li key={index} className="mb-1">
+              {`${fileObj.name}: `}<p className='text-red-500'>{`- Faltan: ${missingFields.join(', ')}`}</p>
+            </li>
+          );
+        })}
     </ul>
     <Pagination 
       itemsPerPage={filesPerPage} 
@@ -365,7 +390,7 @@ const Home = () => {
 
 
           
-        </div>
+      
         )}
         {/* Gráfica Lineal */}
         {selectedTipoDte && filteredData.length > 0 && (
@@ -402,7 +427,7 @@ const Home = () => {
           
 
 {selectedTipoDte && filteredData.length > 0 && (
-      <button 
+      <button style={{ backgroundColor: '#ff6d3cff' }}
       onClick={() => {
     if (files.length === 0 || !selectedTipoDte || selectedMonths.length === 0) {
       alert('Por favor, sube archivos y selecciona un Tipo DTE y al menos un mes antes de descargar.');
