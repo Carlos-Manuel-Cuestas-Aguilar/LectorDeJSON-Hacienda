@@ -1,83 +1,79 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from "react";
-import localFont from "next/font/local";
-import "./globals.css";
-import logoito from "./OIP.jpeg"
+import { useEffect, useState } from 'react';
+import localFont from 'next/font/local';
+import './globals.css';
+import logoito from './OIP.jpeg';
 
+// Configuración de las fuentes personalizadas locales con Tailwind variables
 const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+  src: './fonts/GeistVF.woff', // Ruta al archivo de la fuente
+  variable: '--font-geist-sans', // Nombre de la variable CSS para la fuente
+  weight: '100 900', // Rango de pesos de la fuente
 });
 
+const geistMono = localFont({
+  src: './fonts/GeistMonoVF.woff', // Ruta al archivo de la fuente
+  variable: '--font-geist-mono', // Nombre de la variable CSS para la fuente
+  weight: '100 900', // Rango de pesos de la fuente
+});
+
+// Componente principal del layout
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode; // Define que `children` debe ser un nodo de React
+}) {
+  // Estado para controlar la visibilidad del encabezado
   const [isVisible, setIsVisible] = useState(true);
-  //
-  //const [activeView, setActiveView] = useState('vista1'); // Estado para manejar la vista activa
 
+  // Efecto para ocultar el encabezado al hacer scroll hacia abajo
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 50) {
-        setIsVisible(false);
+        setIsVisible(false); // Ocultar encabezado
       } else {
-        setIsVisible(true);
+        setIsVisible(true); // Mostrar encabezado
       }
     };
 
+    // Registrar el evento de scroll
     window.addEventListener('scroll', handleScroll);
+
+    // Limpiar el evento de scroll al desmontar el componente
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  //const views = {
-  //  vista1: <div>Contenido de Vista 1</div>,
-  //  vista2: <div>Contenido de Vista 2</div>,
-  //  vista3: <div>Contenido de Vista 3</div>,
-  //};
-
   return (
     <html lang="en">
-  <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-  <header
-  style={{ backgroundColor: '#ff6d3cff' }}
-  className={`p-4 flex items-center fixed top-0 left-0 right-0 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
->
-      <Image src={logoito}
-      alt="Logo"
-      width={32}
-      height={32}
-      className="h-8 w-auto"/>
-      <div className="flex-grow flex justify-between ml-4">
-        {//Object.keys(views).map((view, index) => (
-         // <button
-          //  key={view}
-           // className="text-white flex-1 mx-1" // Cada botón ocupará un ancho igual
-            //onClick={() => setActiveView(view)}
-          //>
-           // Botón {index + 1}
-          //</button>
-        //</header>))
-        }
-      </div>
-    </header>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        {/* Encabezado fijo con logo */}
+        <header
+          style={{ backgroundColor: '#ff6d3cff' }} // Color de fondo
+          className={`p-4 flex items-center fixed top-0 left-0 right-0 transition-opacity duration-300 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <Image
+            src={logoito} // Imagen del logo
+            alt="Logo"
+            width={32} // Ancho del logo
+            height={32} // Altura del logo
+            className="h-8 w-auto"
+          />
+          <div className="flex-grow flex justify-between ml-4">
+            {/* Espacio reservado para botones o contenido adicional */}
+          </div>
+        </header>
 
-    <main className="pt-16">
-    {//views[activeView] || <div>Selecciona una vista</div>
-    }
-      {children}
-    </main>
-  </body>
-</html>
-
+        {/* Contenido principal del layout */}
+        <main className="pt-16">
+          {children} {/* Renderiza el contenido que envuelve este layout */}
+        </main>
+      </body>
+    </html>
   );
 }
